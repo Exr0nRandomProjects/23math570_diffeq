@@ -9,9 +9,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 print("imports took", round(time.time() - s), "seconds")
 
-
-
-
 class Viz:
     def __init__(self, colors = ["#FF0000", "#004AFF"], x=10, y=10, show=True):
         self.tilemap = np.zeros((x, y, 3), dtype=np.uint8)
@@ -45,7 +42,6 @@ class Viz:
         return '#' + ''.join([f'{i:02x}' for i in rgb_color])
 
     def mix_colors(self, percentages: List[float], hex_colors: List[str]) -> str:
-        print(percentages)
         if len(percentages) != len(hex_colors):
             raise ValueError("Input lists must have the same length")
 
@@ -81,8 +77,27 @@ class Viz:
             plt.ion()
             plt.show()
 
+    ##############
+    #############
+    # TODO MOVE THIS @albert ur job
+    # :))))))))
+    ######################
+
+    def diffusion_step(self, t, D):
+        next_grid = torch.clone(t)
+
+        for i in range(1, t.shape[0] - 1):
+            for j in range(1, t.shape[1] - 1):
+                for k in range(t.shape[2]):
+                    next_grid[i, j, k] = t[i, j, k] + D * \
+                        (t[i+1, j, k] + t[i-1, j, k] + \
+                        t[i, j+1, k] + t[i, j-1, k] - \
+                        4*t[i, j, k])
+        # self.tilemap = next_grid
+        return next_grid
+
 if __name__ == '__main__':
-    TIME_STEPS = 100
+    TIME_STEPS = 200
     v = Viz()
 
     # input is a 3d array of x,y,concentrations
@@ -92,8 +107,7 @@ if __name__ == '__main__':
     v.visualize_seq()
 
     for i in range(TIME_STEPS):
-        inp = torch.rand((10, 10, 2))
+        # inp = torch.rand((10, 10, 2))
+        inp = v.diffusion_step(inp, 0.01)
         v.append_frame(inp)
         v.next_frame()
-
-

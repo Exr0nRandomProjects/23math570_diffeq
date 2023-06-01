@@ -21,6 +21,20 @@ class LocalReaction:
             not np.sum(self.d_dt[balance, :], axis=0).any()
             for balance in self.mass_balances)
 
+def diffusion_step(grid, D):
+    next_grid = np.copy(grid)
+
+    # Loop over the 2D grid
+    for i in range(1, grid.shape[0] - 1):
+        for j in range(1, grid.shape[1] - 1):
+
+            # Loop over each solute
+            for k in range(grid.shape[2]):
+                # Apply the discrete 2D diffusion equation
+                next_grid[i, j, k] = grid[i, j, k] + D * (grid[i+1, j, k] + grid[i-1, j, k] + grid[i, j+1, k] + grid[i, j-1, k] - 4*grid[i, j, k])
+
+    return next_grid
+
 if __name__ == '__main__':
     reaction = LocalReaction(
         labels=['[E]', '[P]', '[S]', '[ES]', '[E][S]'],
@@ -33,5 +47,4 @@ if __name__ == '__main__':
     )
 
     assert reaction.check_mass_balances(), "conservation of mass didn't check out"
-
 
