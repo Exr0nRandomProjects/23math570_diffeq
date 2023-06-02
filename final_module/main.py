@@ -54,7 +54,6 @@ class LocalReaction:
         print(self.d_dc.mul(with_math))
         new_conc = concentrations + self.d_dc.mul(with_math)
         return new_conc
->>>>>>> 58907fcda95bfbba0cc70a369eb724d7cff63516
 
 if __name__ == '__main__':
     reaction = LocalReaction(
@@ -70,8 +69,6 @@ if __name__ == '__main__':
 
     assert reaction.check_mass_balances(), "conservation of mass didn't check out"
 
-<<<<<<< HEAD
-=======
 
     gridsize = (2, 3)
     concentrations = torch.Tensor([1, 0, 10, 0])\
@@ -82,4 +79,3 @@ if __name__ == '__main__':
         # print(concentrations.flatten())
         concentrations = reaction.step(concentrations)
 
->>>>>>> 58907fcda95bfbba0cc70a369eb724d7cff63516
