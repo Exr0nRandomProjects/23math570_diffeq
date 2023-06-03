@@ -10,7 +10,7 @@ import matplotlib.animation as animation
 print("imports took", round(time.time() - s), "seconds")
 
 class Viz:
-    def __init__(self, colors = ["#FF0000", "#004AFF"], x=10, y=10, show=True):
+    def __init__(self, colors = ["#FF0000", "#004AFF"], x=10, y=10, show=True, save=False, save_path="./vids/out"):
         self.tilemap = np.zeros((x, y, 3), dtype=np.uint8)
         self.colors = colors
         self.xy = (x, y)
@@ -21,6 +21,8 @@ class Viz:
         self.image_plot = None
         self.frame_idx = 0
         self.ani = None
+        self.save = save
+        self.save_path = save_path
 
     def inp_to_tilemap(self, inp):
         for i in range(self.xy[0]):
@@ -102,10 +104,21 @@ class Viz:
         # self.tilemap = next_grid
         return next_grid
 
+    def save_frames(self):
+        if self.save:
+            self.ani = animation.FuncAnimation(self.fig, self.update, frames=len(self.new_seq), interval=1)
+            if self.save_path.endswith(".gif"):
+                self.ani.save(f"{self.save_path}", writer='imagemagick', fps=60)
+                print(f"Frames saved as GIF at {self.save_path}")
+            elif self.save_path.endswith(".mp4"):
+                self.ani.save(self.save_path, writer='imagemagick', fps=60)
+                print(f"Frames saved as MP4 at {self.save_path}")
+
+
 
 if __name__ == '__main__':
-    TIME_STEPS = 200
-    v = Viz()
+    TIME_STEPS = 100
+    v = Viz(save=True, save_path="./vids/out.gif")
 
     # input is a 3d array of x,y,concentrations
     # example input:
@@ -118,3 +131,4 @@ if __name__ == '__main__':
         inp = v.diffusion_step(inp, 0.01)
         v.append_frame(inp)
         v.next_frame()
+    v.save_frames()
