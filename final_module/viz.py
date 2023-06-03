@@ -77,24 +77,6 @@ class Viz:
             plt.ion()
             plt.show()
 
-    ##############
-    #############
-    # TODO MOVE THIS @albert ur job
-    # :))))))))
-    ######################
-
-    def diffusion_step(self, t, D):
-        next_grid = torch.clone(t)
-
-        for i in range(1, t.shape[0] - 1):
-            for j in range(1, t.shape[1] - 1):
-                for k in range(t.shape[2]):
-                    next_grid[i, j, k] = t[i, j, k] + D * \
-                        (t[i+1, j, k] + t[i-1, j, k] + \
-                        t[i, j+1, k] + t[i, j-1, k] - \
-                        4*t[i, j, k])
-        # self.tilemap = next_grid
-        return next_grid
 
 if __name__ == '__main__':
     TIME_STEPS = 200

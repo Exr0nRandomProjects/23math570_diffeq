@@ -38,7 +38,6 @@ class LocalReaction:
         n_chems, grid_dims_flat = concentrations.shape
         assert n_chems == self.n_chems
 
-        # calced = torch.Tensor([f(*concentrations.flatten().tolist()) for f in self.maths])
         # calculate the calculated values by expanding concentration/maths_masks by the other and then taking the product along dim=1
         mask = self.maths_mask.expand([-1, -1, grid_dims_flat])
         masked = masked_tensor(concentrations.expand_as(mask), mask)
@@ -48,6 +47,19 @@ class LocalReaction:
         with_math = torch.vstack([concentrations, calced])
         new_conc = concentrations + self.d_dc.mm(with_math)
         return new_conc
+
+def diffusion_step(t, diffusion_rate):
+    next_grid = torch.clone(t)
+
+    for i in range(1, t.shape[1] - 1):
+        for j in range(1, t.shape[2] - 1):
+            for k in range(t.shape[0]):
+                next_grid[k, i, j] = t[k, i, j] + diffusion_rate * \
+                    (t[k, i+1, j] + t[k, i-1, j] + \
+                    t[k, i, j+1] + t[k, i, j-1] - \
+                    4*t[k, i, j])
+    # self.tilemap = next_grid
+    return next_grid
 
 if __name__ == '__main__':
     reaction = LocalReaction(
