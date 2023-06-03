@@ -79,31 +79,6 @@ class Viz:
             plt.ion()
             plt.show()
 
-    def diffusion_step(self, t, D):
-        next_grid = torch.clone(t)
-
-        # dirichelet
-        # next_grid[0,:,:] = 0
-        # next_grid[-1,:,:] = 0
-        # next_grid[:,0,:] = 0
-        # next_grid[:,-1,:] = 0
-
-        # neumann
-        next_grid[0,:,:] = next_grid[1,:,:]
-        next_grid[-1,:,:] = next_grid[-2,:,:]
-        next_grid[:,0,:] = next_grid[:,1,:]
-        next_grid[:,-1,:] = next_grid[:,-2,:]
-
-        for i in range(1, t.shape[0] - 1):
-            for j in range(1, t.shape[1] - 1):
-                for k in range(t.shape[2]):
-                    next_grid[i, j, k] = t[i, j, k] + D * \
-                        (t[i+1, j, k] + t[i-1, j, k] + \
-                        t[i, j+1, k] + t[i, j-1, k] - \
-                        4*t[i, j, k])
-        # self.tilemap = next_grid
-        return next_grid
-
     def save_frames(self):
         if self.save:
             self.ani = animation.FuncAnimation(self.fig, self.update, frames=len(self.new_seq), interval=1)
