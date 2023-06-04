@@ -52,6 +52,7 @@ class LocalReaction:
 
 
 def diffusion_step(t, D):
+    # shape = n_chems, y_rows, x_cols
     next_grid = torch.clone(t)
 
     # dirichelet
@@ -61,18 +62,18 @@ def diffusion_step(t, D):
     # next_grid[:,-1,:] = 0
 
     # neumann
-    next_grid[0,:,:] = next_grid[1,:,:]
-    next_grid[-1,:,:] = next_grid[-2,:,:]
     next_grid[:,0,:] = next_grid[:,1,:]
     next_grid[:,-1,:] = next_grid[:,-2,:]
+    next_grid[:,:,0] = next_grid[:,:,0]
+    next_grid[:,:,-1] = next_grid[:,:,-2]
 
-    for i in range(1, t.shape[0] - 1):
-        for j in range(1, t.shape[1] - 1):
-            for k in range(t.shape[2]):
-                next_grid[i, j, k] = t[i, j, k] + D * \
-                    (t[i+1, j, k] + t[i-1, j, k] + \
-                    t[i, j+1, k] + t[i, j-1, k] - \
-                    4*t[i, j, k])
+    for k in range(t.shape[0]):
+        for i in range(1, t.shape[1] - 1):
+            for j in range(1, t.shape[2] - 1):
+                next_grid[k, i, j] = t[k, i, j] + D * \
+                    (t[k, i+1, j] + t[k, i-1, j] + \
+                    t[k, i, j+1] + t[k, i, j-1] - \
+                    4*t[k, i, j])
     # self.tilemap = next_grid
     return next_grid
 
@@ -80,24 +81,39 @@ def diffusion_step(t, D):
 if __name__ == '__main__':
     reaction = LocalReaction(
         labels=['[E]', '[P]', '[S]', '[ES]', '[E][S]'],
-        d_dc = torch.tensor([[0, 0, 0, 8  , -1  ],
-                             [0, 0, 0, 8/5, -1  ],
-                             [0, 0, 0, 4*8/5, 0 ],
-                             [0, 0, 0, -8 ,  1  ]])*0.01,
+        d_dc = torch.tensor([[0, 0, 0, 8  , -1  ],  # E
+                             [0, 0, 0, 4*8/5, 0 ],  # P
+                             [0, 0, 0, 8/5, -1  ],  # S
+                             [0, 0, 0, -8 ,  1  ]]  # ES
+                        )*0.01,
         maths_masks=[[True, False, True, False]],
         mass_balances=[[0, 3], [1, 2, 3]]
     )
 
-    gridsize = (6, 1)
+    gridsize = (20, 20)
     initial_concentrations = [1, 0, 10, 0]
-    TIME_STEPS = int(1e3)
+    TIME_STEPS = int(7e2)
     VIS_STEPS = 5
     DIFFUSION_RATIO = 0.01
     VIS_INDICIES = { 1: '#00ff00', 2: '#ff0000', 0: '#0000aa' }
+    SHOW_CONCENTRATION_CHART = False
 
 
-    world = torch.Tensor(initial_concentrations)\
-            .repeat(*gridsize, 1).transpose(-1, 0)  # shape = (n_chems, y_rows, x_cols)
+    start_cells = [(3, 4), (3, 5), (4, 4), (4, 5),
+                   (10, 10), (10, 11), (10, 12), (12, 10), (12, 11), (12, 12), (11, 10), (11, 12)]
+
+
+
+
+    # uniform start
+    # world = torch.Tensor(initial_concentrations).repeat(*gridsize, 1).transpose(-1, 0)  # shape = (n_chems, y_rows, x_cols)
+
+    # semi-corner start
+    world = torch.zeros([len(initial_concentrations), *gridsize])
+    for start_cell in start_cells:
+        world[:, *start_cell] = torch.tensor(initial_concentrations)
+
+
     print(world)
 
     v = Vis(colors=list(VIS_INDICIES.values()), x=gridsize[0], y=gridsize[1], save=True)
@@ -106,35 +122,34 @@ if __name__ == '__main__':
 
     flatland = world.flatten(start_dim=1)
 
-    fig, ax = plt.subplots()
-    lines = [ax.plot([], [], label=key)[0] for key in reaction.labels]
-    line_data = [[] for _ in reaction.labels]
-    ax.legend()
+    if SHOW_CONCENTRATION_CHART:
+        fig, ax = plt.subplots()
+        lines = [ax.plot([], [], label=key)[0] for key in reaction.labels]
+        line_data = [[] for _ in reaction.labels]
+        ax.legend()
 
-    # for i in trange(int(3e1), disable=True):
-    for i in trange(int(1e5)):
+    for i in trange(TIME_STEPS):
         flatland = reaction.step(flatland)
-        # world = flatland.reshape([-1, *gridsize])
-        # world = diffusion_step(world, DIFFUSION_RATIO)
-        # flatland = world.flatten(start_dim=1)
+        world = flatland.reshape([-1, *gridsize])
+        world = diffusion_step(world, DIFFUSION_RATIO)
+        flatland = world.flatten(start_dim=1)
 
-        print(flatland)
-        print('\n\n')
+        # print(flatland)
+        # print('\n\n')
 
         if i % VIS_STEPS == 0:
             v.append_frame(flatland[list(VIS_INDICIES.keys())].transpose(0, 1).reshape(*gridsize, -1))
             v.next_frame()
 
 
+            if SHOW_CONCENTRATION_CHART:
+                for line, line_datum, chem_conc in zip(lines, line_data, flatland[:, 0]):
+                    line_datum.append(chem_conc)
+                    line.set_xdata(np.arange(len(line_datum)))
+                    line.set_ydata(line_datum)
 
-            for line, line_datum, chem_conc in zip(lines, line_data, flatland[:, 0]):
-                line_datum.append(chem_conc)
-                line.set_xdata(np.arange(len(line_datum)))
-                line.set_ydata(line_datum)
-                print(flatland.shape)
-
-            ax.relim()
-            ax.autoscale()
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+                ax.relim()
+                ax.autoscale()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
 
