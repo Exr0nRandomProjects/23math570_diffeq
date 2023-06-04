@@ -1,7 +1,7 @@
 from rich.console import Console
 from rich import print
 from matplotlib import pyplot as plt
-# import numpy as np
+import numpy as np
 import torch
 from torch.masked import masked_tensor
 from tqdm import tqdm, trange
@@ -79,12 +79,12 @@ def diffusion_step(t, D):
 
 if __name__ == '__main__':
     reaction = LocalReaction(
-        labels=['[E]', '[P]', '[S]', '[ES]', '[E][S]', 'everything'],
-        d_dc = torch.tensor([[0, 0, 0, 8  , -1  , 0],
-                             [0, 0, 0, 8/5, -1  , 0],
-                             [0, 0, 0, 4*8/5, 0 , 0],
-                             [0, 0, 0, -8 ,  1  , 0]])*0.01,
-        maths_masks=[[True, False, True, False], [True, True, True, True]],
+        labels=['[E]', '[P]', '[S]', '[ES]', '[E][S]'],
+        d_dc = torch.tensor([[0, 0, 0, 8  , -1  ],
+                             [0, 0, 0, 8/5, -1  ],
+                             [0, 0, 0, 4*8/5, 0 ],
+                             [0, 0, 0, -8 ,  1  ]])*0.01,
+        maths_masks=[[True, False, True, False]],
         mass_balances=[[0, 3], [1, 2, 3]]
     )
 
@@ -106,6 +106,11 @@ if __name__ == '__main__':
 
     flatland = world.flatten(start_dim=1)
 
+    fig, ax = plt.subplots()
+    lines = [ax.plot([], [], label=key)[0] for key in reaction.labels]
+    line_data = [[] for _ in reaction.labels]
+    ax.legend()
+
     # for i in trange(int(3e1), disable=True):
     for i in trange(int(1e5)):
         flatland = reaction.step(flatland)
@@ -113,9 +118,23 @@ if __name__ == '__main__':
         # world = diffusion_step(world, DIFFUSION_RATIO)
         # flatland = world.flatten(start_dim=1)
 
-        # print(flatland)
-        # print('\n\n')
+        print(flatland)
+        print('\n\n')
 
         if i % VIS_STEPS == 0:
             v.append_frame(flatland[list(VIS_INDICIES.keys())].transpose(0, 1).reshape(*gridsize, -1))
             v.next_frame()
+
+
+
+            for line, line_datum, chem_conc in zip(lines, line_data, flatland[:, 0]):
+                line_datum.append(chem_conc)
+                line.set_xdata(np.arange(len(line_datum)))
+                line.set_ydata(line_datum)
+                print(flatland.shape)
+
+            ax.relim()
+            ax.autoscale()
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+
