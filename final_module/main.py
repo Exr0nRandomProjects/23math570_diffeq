@@ -90,12 +90,12 @@ if __name__ == '__main__':
         mass_balances=[[0, 3], [1, 2, 3]]
     )
 
-    gridsize = (20, 20)
-    initial_concentrations = [1, 0, 10, 0]
-    TIME_STEPS = int(7e2)
+    gridsize = (15, 15)
+    initial_concentrations = [1, 0, 50, 0]
+    TIME_STEPS = int(2e3)
     VIS_STEPS = 5
     DIFFUSION_RATIO = 0.01
-    VIS_INDICIES = { 1: '#00ff00', 2: '#ff0000', 0: '#0000aa' }
+    VIS_INDICIES = { 2: "#FF0000", 1: "#004AFF" }
     SHOW_CONCENTRATION_CHART = False
 
 
